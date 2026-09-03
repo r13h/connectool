@@ -27,7 +27,9 @@ jobs:
           helm package charts/connectool --destination dist
       - name: Sign in to public OCI registry
         shell: bash
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
       - name: Publish OCI chart
         run: helm push dist/connectool-*.tgz oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts
       - name: Sign and verify OCI chart with GitHub OIDC
