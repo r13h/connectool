@@ -1,0 +1,34 @@
+name: Release Helm chart
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Verify release version
+        shell: bash
+        run: |
+          chart_version=$(sed -n 's/^version: //p' charts/connectool/Chart.yaml)
+          test "${GITHUB_REF_NAME}" = "v${chart_version}"
+      - name: Lint and package
+        run: |
+          helm lint charts/connectool --values charts/connectool/examples/example-values.yaml
+          helm package charts/connectool --destination dist
+      - name: Sign in to public OCI registry
+        shell: bash
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Publish OCI chart
+        run: helm push dist/connectool-*.tgz oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${GITHUB_REF_NAME}" dist/connectool-*.tgz --generate-notes --verify-tag

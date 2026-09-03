@@ -1,0 +1,12 @@
+apiVersion: v2
+name: connectool
+description: Provider-neutral OIDC and RBAC contracts for controlled access to independent Kubernetes clusters.
+type: application
+version: 0.1.0
+appVersion: "1.0"
+home: https://github.com/re8ch/connectool
+sources:
+  - https://github.com/re8ch/connectool
+keywords: [kubernetes, oidc, rbac, multicluster, access-control]
+maintainers:
+  - name: ConnecTool maintainers

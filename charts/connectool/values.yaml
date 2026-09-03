@@ -1,0 +1,28 @@
+cluster:
+  name: ""
+  owner: ""
+  organizationBoundary: external
+  apiEndpoint: ""
+
+consumer:
+  name: ""
+  oidcIssuer: ""
+  identitySource: oidc
+  usernamePrefix: "oidc:"
+  scopes: [openid, profile, email, groups]
+
+contract:
+  relationship: api-access-only
+  dataPlaneSharing: prohibited
+  credentialPolicy: oidc-no-static-credentials
+  ownerRevocationAuthoritative: true
+
+# No access is granted by default. Every grant must be an owner-reviewed decision.
+accessGrants: []
+# - name: delegated-readers
+#   roleRef:
+#     kind: ClusterRole
+#     name: view
+#   subjects:
+#     - kind: Group
+#       name: oidc:example-readers

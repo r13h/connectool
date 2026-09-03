@@ -1,0 +1,27 @@
+cluster:
+  name: example-cluster
+  owner: example-team
+  organizationBoundary: external
+  apiEndpoint: https://kubernetes.example.com
+
+consumer:
+  name: example-console
+  oidcIssuer: https://identity.example.com
+  identitySource: example-oidc
+  usernamePrefix: "oidc:"
+  scopes: [openid, profile, email, groups]
+
+contract:
+  relationship: api-access-only
+  dataPlaneSharing: prohibited
+  credentialPolicy: oidc-no-static-credentials
+  ownerRevocationAuthoritative: true
+
+accessGrants:
+  - name: example-readers
+    roleRef:
+      kind: ClusterRole
+      name: view
+    subjects:
+      - kind: Group
+        name: "oidc:example-readers"

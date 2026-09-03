@@ -1,0 +1,26 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Lint
+        run: helm lint charts/connectool --values charts/connectool/examples/example-values.yaml
+      - name: Render
+        run: helm template connectool charts/connectool --values charts/connectool/examples/example-values.yaml > /tmp/connectool.yaml
+      - name: Enforce provider-neutral chart
+        run: |
+          if grep -RniE 'registry\.re8ch\.com|dex\.re8ch\.com|re8ch-headlamp' charts/connectool; then
+            echo 'private deployment settings must not enter the upstream chart' >&2
+            exit 1
+          fi
