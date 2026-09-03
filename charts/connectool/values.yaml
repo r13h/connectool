@@ -1,28 +1,58 @@
-cluster:
-  name: ""
-  owner: ""
-  organizationBoundary: external
-  apiEndpoint: ""
+global:
+  issuer: https://dex.example.com
+  scopes: [openid, profile, email, groups, offline_access]
 
-consumer:
-  name: ""
-  oidcIssuer: ""
-  identitySource: oidc
-  usernamePrefix: "oidc:"
-  scopes: [openid, profile, email, groups]
+dex:
+  # This chart deliberately publishes a non-secret desired-client contract.
+  # Reconcile it into Dex with the platform's secret-aware controller/process.
+  contract:
+    enabled: true
+    namespace: dex
+    configMapName: ""
 
-contract:
-  relationship: api-access-only
-  dataPlaneSharing: prohibited
-  credentialPolicy: oidc-no-static-credentials
-  ownerRevocationAuthoritative: true
+toolhive:
+  namespace: toolhive-system
+  registry:
+    enabled: true
+    name: approved
+    sources: []
+    release:
+      enabled: false
+      version: 1.5.0
+      sourceNamespace: flux-system
+      values: {}
+  sessionStorage:
+    provider: redis
+    address: ""
+    passwordSecretRef: {name: "", key: password}
+  publications: []
+  # - name: platform-tools
+  #   clientId: platform-tools
+  #   resourceUrl: https://tools.example.com/mcp
+  #   group: platform-tools
+  #   createGroup: true
+  #   workloads:
+  #     - {name: observe, toolConfigRef: observe-tools}
+  #   authorization:
+  #     groupClaim: groups
+  #     policies: ['permit(principal, action, resource);']
+  #   session: {database: 1, keyPrefix: "thv:tools:"}
 
-# No access is granted by default. Every grant must be an owner-reviewed decision.
-accessGrants: []
-# - name: delegated-readers
-#   roleRef:
-#     kind: ClusterRole
-#     name: view
-#   subjects:
-#     - kind: Group
-#       name: oidc:example-readers
+codex:
+  marketplace:
+    name: connectool
+    displayName: ConnecTool
+    source: https://github.com/example/codex-plugins.git
+  plugins: []
+  # Exactly one plugin may own each publication's MCP registration. Skill-only
+  # plugins reference the owner and therefore do not render duplicate servers.
+  # - name: platform-tool
+  #   publication: platform-tools
+  #   category: Productivity
+  #   mcpOwner: true
+  #   skills: [skills/platform/SKILL.md]
+  # - name: cluster-operations
+  #   publication: platform-tools
+  #   category: Developer Tools
+  #   mcpOwner: false
+  #   skills: [skills/cluster/SKILL.md]

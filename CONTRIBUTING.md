@@ -1,6 +1,6 @@
 # Contributing
 
-Changes should preserve ConnecTool's provider-neutral and fail-closed defaults.
+Changes should preserve ConnecTool's provider-neutral, explicit configuration.
 
 1. Do not add organization-specific endpoints, identities, credentials, or registry hosts.
 2. Put deployment-specific settings in a downstream values file.

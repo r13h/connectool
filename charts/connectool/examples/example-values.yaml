@@ -1,27 +1,39 @@
-cluster:
-  name: example-cluster
-  owner: example-team
-  organizationBoundary: external
-  apiEndpoint: https://kubernetes.example.com
-
-consumer:
-  name: example-console
-  oidcIssuer: https://identity.example.com
-  identitySource: example-oidc
-  usernamePrefix: "oidc:"
-  scopes: [openid, profile, email, groups]
-
-contract:
-  relationship: api-access-only
-  dataPlaneSharing: prohibited
-  credentialPolicy: oidc-no-static-credentials
-  ownerRevocationAuthoritative: true
-
-accessGrants:
-  - name: example-readers
-    roleRef:
-      kind: ClusterRole
-      name: view
-    subjects:
-      - kind: Group
-        name: "oidc:example-readers"
+global:
+  issuer: https://identity.example.com
+  scopes: [openid, profile, email, groups, offline_access]
+dex:
+  contract: {enabled: true, namespace: identity-system, configMapName: connectool-oidc-clients}
+toolhive:
+  namespace: toolhive-system
+  registry:
+    enabled: true
+    name: approved
+    sources:
+      - {name: managed-workloads, kubernetes: {namespaces: [toolhive-system]}}
+    release: {enabled: false, version: 1.5.0, sourceNamespace: flux-system, values: {}}
+  sessionStorage:
+    provider: redis
+    address: ""
+    passwordSecretRef: {name: "", key: password}
+  publications:
+    - name: platform-tools
+      clientId: platform-tools
+      resourceUrl: https://tools.example.com/mcp
+      group: platform-tools
+      createGroup: true
+      workloads:
+        - {name: observe, toolConfigRef: observe-tools}
+      authorization:
+        groupClaim: groups
+        policies: ['permit(principal, action, resource);']
+codex:
+  marketplace:
+    name: example-tools
+    displayName: Example Tools
+    source: https://github.com/example/codex-plugins.git
+  plugins:
+    - name: platform-tool
+      publication: platform-tools
+      category: Productivity
+      mcpOwner: true
+      skills: [skills/platform/SKILL.md]

@@ -1,75 +1,37 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["cluster", "consumer", "contract", "accessGrants"],
+  "required": ["global", "dex", "toolhive", "codex"],
   "properties": {
-    "cluster": {
+    "global": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "owner", "organizationBoundary", "apiEndpoint"],
+      "required": ["issuer", "scopes"],
       "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "owner": {"type": "string", "minLength": 1},
-        "organizationBoundary": {"const": "external"},
-        "apiEndpoint": {"type": "string", "pattern": "^https://"}
+        "issuer": {"type": "string", "pattern": "^https://"},
+        "scopes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}
       }
     },
-    "consumer": {
+    "dex": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "oidcIssuer", "identitySource", "usernamePrefix", "scopes"],
+      "required": ["contract"],
+      "properties": {"contract": {"type": "object", "required": ["enabled", "namespace"], "properties": {"enabled": {"type": "boolean"}, "namespace": {"type": "string", "minLength": 1}, "configMapName": {"type": "string"}}}}
+    },
+    "toolhive": {
+      "type": "object",
+      "required": ["namespace", "registry", "sessionStorage", "publications"],
       "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "oidcIssuer": {"type": "string", "pattern": "^https://"},
-        "identitySource": {"type": "string", "minLength": 1},
-        "usernamePrefix": {"type": "string", "minLength": 1},
-        "scopes": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+        "namespace": {"type": "string", "minLength": 1},
+        "registry": {"type": "object", "required": ["enabled", "name", "sources"], "properties": {"enabled": {"type": "boolean"}, "name": {"type": "string", "minLength": 1}, "sources": {"type": "array"}}},
+        "sessionStorage": {"type": "object", "required": ["provider", "address", "passwordSecretRef"], "properties": {"provider": {"const": "redis"}, "address": {"type": "string"}, "passwordSecretRef": {"type": "object", "required": ["name", "key"]}}},
+        "publications": {"type": "array", "items": {"type": "object", "required": ["name", "clientId", "resourceUrl", "group", "workloads", "authorization"], "properties": {"name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"}, "clientId": {"type": "string", "minLength": 1}, "resourceUrl": {"type": "string", "pattern": "^https://"}, "group": {"type": "string", "minLength": 1}, "workloads": {"type": "array", "minItems": 1}, "authorization": {"type": "object", "required": ["groupClaim", "policies"]}}}}
       }
     },
-    "contract": {
+    "codex": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["relationship", "dataPlaneSharing", "credentialPolicy", "ownerRevocationAuthoritative"],
+      "required": ["marketplace", "plugins"],
       "properties": {
-        "relationship": {"const": "api-access-only"},
-        "dataPlaneSharing": {"const": "prohibited"},
-        "credentialPolicy": {"const": "oidc-no-static-credentials"},
-        "ownerRevocationAuthoritative": {"const": true}
-      }
-    },
-    "accessGrants": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["name", "roleRef", "subjects"],
-        "properties": {
-          "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"},
-          "roleRef": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["kind", "name"],
-            "properties": {
-              "kind": {"const": "ClusterRole"},
-              "name": {"type": "string", "minLength": 1}
-            }
-          },
-          "rules": {"type": "array"},
-          "subjects": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["kind", "name"],
-              "properties": {
-                "kind": {"enum": ["User", "Group"]},
-                "name": {"type": "string", "minLength": 1}
-              }
-            }
-          }
-        }
+        "marketplace": {"type": "object", "required": ["name", "displayName", "source"], "properties": {"name": {"type": "string", "minLength": 1}, "displayName": {"type": "string", "minLength": 1}, "source": {"type": "string", "pattern": "^https://"}}},
+        "plugins": {"type": "array", "items": {"type": "object", "required": ["name", "publication", "mcpOwner", "skills"], "properties": {"name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"}, "publication": {"type": "string", "minLength": 1}, "mcpOwner": {"type": "boolean"}, "skills": {"type": "array", "items": {"type": "string"}}}}}
       }
     }
   }

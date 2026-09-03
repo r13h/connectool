@@ -1,5 +1,10 @@
-The owner-side ConnecTool access contract is installed.
+AI Registry contracts and ToolHive publications have been rendered.
 
-This release grants only the access listed in accessGrants. It does not create
-tokens, client certificates, tunnels, service discovery, or data-plane sharing.
-Remove an accessGrant (or uninstall this release) to revoke the delegated RBAC.
+Dex client data is non-secret reconciliation input; this release does not edit
+the Dex configuration Secret. Codex registration data is an artifact for the
+configured Git marketplace; Helm cannot install a plugin into desktop clients.
+
+Marketplace: {{ .Values.codex.marketplace.source }}
+After the marketplace is reconciled, install with:
+  codex plugin marketplace add {{ .Values.codex.marketplace.source }}
+  codex plugin add <plugin>@{{ .Values.codex.marketplace.name }}

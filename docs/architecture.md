@@ -1,37 +1,34 @@
 # Architecture boundary
 
-ConnecTool owns a small, portable owner-side contract:
+ConnecTool models one portable chain:
 
-1. describe an independent target cluster and its OIDC consumer;
-2. create only the explicitly reviewed Kubernetes RBAC grants;
-3. record the credential-free access contract in a ConfigMap;
-4. fail closed when no grants are supplied.
+```text
+Codex-compatible plugin
+  -> OIDC public PKCE client
+  -> ToolHive VirtualMCPServer
+  -> reviewed MCP workloads and tool policies
+```
 
-It does not own OIDC provider installation, API-server flags, network tunnels,
-service discovery, workload federation, storage, or secret distribution.
+The upstream chart owns only schemas, validation, non-secret contracts, and
+ToolHive custom resources. Every environmental choice is a value: issuer,
+namespaces, Registry sources, session storage references, public MCP URLs,
+workloads, policies, marketplace source, and plugin-to-publication ownership.
 
-## Configuration boundary
+It does not own identity-provider installation, Secret mutation, OAuth tokens,
+desktop installation, network publication, or the MCP workload implementations.
 
-The upstream chart contains portable schema and templates. Each adopter keeps a
-separate values overlay containing its issuer URL, consumer name, API endpoint,
-username mapping, and subjects. Organizational overlays are not upstream examples.
+## Distribution
 
-The canonical package is published at:
+The canonical chart is public at:
 
 ```text
 oci://ghcr.io/re8ch/charts/connectool
 ```
 
-Deployments may mirror that artifact to Harbor, ECR, GAR, ACR, or another OCI
-registry, but mirrors are optional transport details. They must never be embedded
-in the chart templates or defaults.
+An adopter may mirror the artifact to any OCI registry. A mirror is an optional
+transport/cache and never an upstream dependency. Environment overlays stay in
+the adopter's own GitOps repository.
 
-## Future controllers and AI tools
-
-If a future controller or AI tool introduces a container image, its values must
-separate `registry`, `repository`, `tag`, and `digest`. The default public image
-must be usable without private credentials, and production consumers should be
-able to pin a digest or override all image coordinates.
-
-Provider integrations belong behind explicit, optional adapters. Core APIs and
-values must remain usable with any conforming Kubernetes cluster and OIDC issuer.
+If ConnecTool later ships controller images, values must separate `registry`,
+`repository`, `tag`, and `digest`; defaults must remain publicly pullable and
+production consumers must be able to pin digests.

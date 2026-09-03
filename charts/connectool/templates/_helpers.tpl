@@ -1,12 +1,16 @@
-{{- define "connectool.name" -}}
-connectool
-{{- end }}
-
 {{- define "connectool.labels" -}}
-app.kubernetes.io/name: {{ include "connectool.name" . }}
+app.kubernetes.io/name: connectool
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | quote }}
-access.connectool.io/relationship: controlled-cluster
-access.connectool.io/owner: {{ .Values.cluster.owner | quote }}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name (.Chart.Version | replace "+" "_") | trunc 63 | trimSuffix "-" | quote }}
+ai.connectool.io/identity-provider: oidc
+ai.connectool.io/distribution-plane: toolhive
 {{- end }}
+
+{{- define "connectool.publication" -}}
+{{- $name := . -}}
+{{- $matches := list -}}
+{{- range $.root.Values.toolhive.publications }}{{ if eq .name $name }}{{ $matches = append $matches . }}{{ end }}{{ end -}}
+{{- if ne (len $matches) 1 }}{{ fail (printf "Codex plugin references unknown or duplicate publication %q" $name) }}{{ end -}}
+{{- index $matches 0 | toJson -}}
+{{- end -}}
