@@ -10,7 +10,7 @@ without embedding one organization's endpoints, policies, identities, or registr
 ```sh
 helm install connectool \
   oci://ghcr.io/re8ch/charts/connectool \
-  --version 0.2.0 \
+  --version 0.2.1 \
   --namespace connectool \
   --create-namespace \
   --values my-values.yaml
