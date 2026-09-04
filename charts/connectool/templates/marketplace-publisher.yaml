@@ -33,7 +33,26 @@ data:
 
     repository="$work_dir/repository"
     mkdir -p "$repository/.agents/plugins"
-    cp /contract/marketplace.json "$repository/.agents/plugins/marketplace.json"
+    marketplace="$repository/.agents/plugins/marketplace.json"
+    if [ -f "$marketplace" ]; then
+      # ConnecTool owns only the plugin names present in its generated contract.
+      # Preserve all other entries so one organization marketplace can also
+      # distribute external or hand-maintained plugins.
+      jq -s '
+        .[0] as $existing | .[1] as $generated |
+        ($generated.plugins | map(.name)) as $managed |
+        $generated + {
+          plugins: (
+            (($existing.plugins // []) |
+              map(select(.name as $name | ($managed | index($name) | not))))
+            + $generated.plugins
+          )
+        }
+      ' "$marketplace" /contract/marketplace.json >"$marketplace.next"
+      mv "$marketplace.next" "$marketplace"
+    else
+      cp /contract/marketplace.json "$marketplace"
+    fi
 
     for manifest in /contract/*.plugin.json; do
       [ -e "$manifest" ] || continue
@@ -84,7 +103,9 @@ spec:
             - name: publisher
               image: {{ .Values.codex.marketplace.publisher.image | quote }}
               imagePullPolicy: IfNotPresent
-              command: [/bin/sh, /publisher/publish.sh]
+              command: [/bin/sh, -ceu]
+              args:
+                - apk add --no-cache jq >/dev/null && exec /bin/sh /publisher/publish.sh
               env:
                 - name: GIT_REPOSITORY
                   value: {{ .Values.codex.marketplace.publisher.repository | quote }}

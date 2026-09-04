@@ -28,7 +28,10 @@ helm template connectool . -n connectool -f examples/example-values.yaml
 To enable Git publication, set `codex.marketplace.publisher.enabled`, use the
 same HTTPS repository for `source` and `publisher.repository`, and provide a
 least-privilege credential Secret. The scheduled publisher commits only when
-generated files change.
+generated files change. Marketplace publication is name-aware: ConnecTool
+replaces entries for plugin names declared in `codex.plugins` and preserves all
+other entries already present in the repository. This allows an organization to
+publish ConnecTool-managed and external plugins from one marketplace.
 
 ## Public delivery
 
