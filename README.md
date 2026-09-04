@@ -24,7 +24,10 @@ Start with [`charts/connectool/examples/example-values.yaml`](charts/connectool/
 - ToolHive Registry sources and optional registry-server release settings;
 - MCP groups, OIDC configuration, virtual MCP aggregation, and authorization;
 - Codex marketplace metadata, MCP ownership, and reusable skill-only plugins;
+- an optional Git publisher for generated marketplace, plugin, and MCP manifests;
 - validation that each publication has exactly one MCP-owning plugin.
 
 ConnecTool stores no OAuth tokens or identity-provider secrets and installs no
-desktop plugins. See [the architecture boundary](docs/architecture.md).
+desktop plugins. The publisher reads credentials from a pre-existing Kubernetes
+Secret and preserves user-authored skill files in the target repository. See
+[the architecture boundary](docs/architecture.md).

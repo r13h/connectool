@@ -43,6 +43,19 @@ codex:
     name: connectool
     displayName: ConnecTool
     source: https://github.com/example/codex-plugins.git
+    publisher:
+      enabled: false
+      repository: ""
+      branch: main
+      schedule: "*/5 * * * *"
+      image: alpine/git:2.47.2
+      secretRef:
+        name: ""
+        usernameKey: username
+        tokenKey: token
+      author:
+        name: ConnecTool Publisher
+        email: connectool@example.com
   plugins: []
   # Exactly one plugin may own each publication's MCP registration. Skill-only
   # plugins reference the owner and therefore do not render duplicate servers.
