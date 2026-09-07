@@ -10,10 +10,11 @@ and Codex marketplace/plugin metadata. Skills are distributed by a Git-backed
 marketplace; ToolHive distributes MCP capabilities.
 
 The chart does not install an identity provider, mutate its Secret, install
-plugins on desktops, or store OAuth tokens. It can optionally publish only the
-generated marketplace, plugin, and MCP manifests into a Git repository. Existing
-skills and other repository files are preserved, and credentials must be supplied
-through a pre-existing Secret. All endpoints, namespaces, registry sources,
+plugins on desktops, or store OAuth tokens. It can optionally publish the
+generated marketplace, plugin, MCP, and Skill files into a Git repository. Each
+managed plugin directory is rebuilt from the values contract, while unrelated
+repository files are preserved. Credentials must be supplied through a
+pre-existing Secret. All endpoints, namespaces, registry sources,
 publications, authorization policies, marketplace coordinates, and optional
 ToolHive Registry settings are values-controlled.
 
@@ -26,12 +27,13 @@ helm template connectool . -n connectool -f examples/example-values.yaml
 ```
 
 To enable Git publication, set `codex.marketplace.publisher.enabled`, use the
-same HTTPS repository for `source` and `publisher.repository`, and provide a
-least-privilege credential Secret. The scheduled publisher commits only when
-generated files change. Marketplace publication is name-aware: ConnecTool
-replaces entries for plugin names declared in `codex.plugins` and preserves all
-other entries already present in the repository. This allows an organization to
-publish ConnecTool-managed and external plugins from one marketplace.
+same HTTPS repository for `source` and `publisher.repository`, provide a
+least-privilege credential Secret, and select a digest-pinned image containing
+`git`, `jq`, and CA certificates. The publisher validates every generated JSON
+file, checks the staged diff, pushes atomically, and verifies the remote head.
+Marketplace publication is name-aware: ConnecTool replaces entries and complete
+directories for plugin names declared in `codex.plugins`, while preserving all
+unrelated marketplace entries and repository files.
 
 ## Public delivery
 

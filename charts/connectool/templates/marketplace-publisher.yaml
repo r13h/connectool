@@ -25,13 +25,24 @@ data:
     export GIT_ASKPASS="$askpass_dir/askpass"
     export GIT_TERMINAL_PROMPT=0
 
-    if ! git clone --depth 1 --branch "$GIT_BRANCH" "$GIT_REPOSITORY" "$work_dir/repository"; then
-      git -C "$work_dir" init repository
-      git -C "$work_dir/repository" checkout -b "$GIT_BRANCH"
-      git -C "$work_dir/repository" remote add origin "$GIT_REPOSITORY"
-    fi
+    set +e
+    git ls-remote --exit-code --heads "$GIT_REPOSITORY" "refs/heads/$GIT_BRANCH" >"$work_dir/remote-head"
+    remote_status=$?
+    set -e
+    case "$remote_status" in
+      0) git clone --depth 1 --branch "$GIT_BRANCH" "$GIT_REPOSITORY" "$work_dir/repository" ;;
+      2)
+        git -C "$work_dir" init repository
+        git -C "$work_dir/repository" checkout -b "$GIT_BRANCH"
+        git -C "$work_dir/repository" remote add origin "$GIT_REPOSITORY"
+        ;;
+      *) echo "cannot reach marketplace repository" >&2; exit 69 ;;
+    esac
 
     repository="$work_dir/repository"
+    test -x "$(command -v git)"
+    test -x "$(command -v jq)"
+    jq -e '.name and (.plugins | type == "array")' /contract/marketplace.json >/dev/null
     mkdir -p "$repository/.agents/plugins"
     marketplace="$repository/.agents/plugins/marketplace.json"
     if [ -f "$marketplace" ]; then
@@ -51,28 +62,68 @@ data:
       ' "$marketplace" /contract/marketplace.json >"$marketplace.next"
       mv "$marketplace.next" "$marketplace"
     else
-      cp /contract/marketplace.json "$marketplace"
+      jq . /contract/marketplace.json >"$marketplace"
     fi
 
     for manifest in /contract/*.plugin.json; do
       [ -e "$manifest" ] || continue
       plugin="$(basename "$manifest" .plugin.json)"
+      if [ -f "$repository/plugins/$plugin/.codex-plugin/plugin.json" ]; then
+        jq -r '.version // empty' "$repository/plugins/$plugin/.codex-plugin/plugin.json" >"$work_dir/$plugin.old-version"
+      fi
+      if [ -f "$repository/plugins/$plugin/.contract.sha256" ]; then
+        cp "$repository/plugins/$plugin/.contract.sha256" "$work_dir/$plugin.old-contract-sha256"
+      fi
+      rm -rf "$repository/plugins/$plugin"
       mkdir -p "$repository/plugins/$plugin/.codex-plugin"
       cp "$manifest" "$repository/plugins/$plugin/.codex-plugin/plugin.json"
+      jq -e --arg plugin "$plugin" '.name == $plugin and .version and .interface' "$manifest" >/dev/null
       if [ -f "/contract/$plugin.mcp.json" ]; then
         cp "/contract/$plugin.mcp.json" "$repository/plugins/$plugin/.mcp.json"
+        jq -e --arg plugin "$plugin" '.mcpServers[$plugin].type == "http" and .mcpServers[$plugin].oauth.clientId' "/contract/$plugin.mcp.json" >/dev/null
       fi
     done
+
+    tab="$(printf '\t')"
+    while IFS="$tab" read -r plugin source destination; do
+      [ -n "$plugin" ] || continue
+      case "$destination" in skills/*/SKILL.md) ;; *) echo "invalid skill destination: $destination" >&2; exit 65 ;; esac
+      case "$destination" in *..*) echo "unsafe skill destination: $destination" >&2; exit 65 ;; esac
+      mkdir -p "$repository/plugins/$plugin/$(dirname "$destination")"
+      cp "/contract/$source" "$repository/plugins/$plugin/$destination"
+    done </contract/skills.tsv
+
+    for manifest in /contract/*.plugin.json; do
+      [ -e "$manifest" ] || continue
+      plugin="$(basename "$manifest" .plugin.json)"
+      contract_hash="$(cd "$repository/plugins/$plugin" && find . -type f ! -name .contract.sha256 -print | sort | while IFS= read -r file; do sha256sum "$file"; done | sha256sum | cut -d' ' -f1)"
+      new_version="$(jq -r '.version' "$manifest")"
+      old_version="$(cat "$work_dir/$plugin.old-version" 2>/dev/null || true)"
+      old_contract_hash="$(cat "$work_dir/$plugin.old-contract-sha256" 2>/dev/null || true)"
+      if [ -n "$old_contract_hash" ] && [ "$old_contract_hash" != "$contract_hash" ] && [ "$old_version" = "$new_version" ]; then
+        echo "plugin $plugin contract changed without a version bump ($new_version)" >&2
+        exit 65
+      fi
+      printf '%s\n' "$contract_hash" >"$repository/plugins/$plugin/.contract.sha256"
+    done
+
+    while IFS="$tab" read -r plugin source destination; do
+      [ -n "$plugin" ] || continue
+      test -s "$repository/plugins/$plugin/$destination"
+    done </contract/skills.tsv
 
     git -C "$repository" config user.name "$GIT_AUTHOR_NAME"
     git -C "$repository" config user.email "$GIT_AUTHOR_EMAIL"
     git -C "$repository" add .agents/plugins/marketplace.json plugins
+    git -C "$repository" diff --cached --check
     if git -C "$repository" diff --cached --quiet; then
       echo "Marketplace is already current"
       exit 0
     fi
     git -C "$repository" commit -m "Publish ConnecTool marketplace"
     git -C "$repository" push origin "HEAD:$GIT_BRANCH"
+    remote_head="$(git -C "$repository" ls-remote origin "refs/heads/$GIT_BRANCH" | cut -f1)"
+    test "$remote_head" = "$(git -C "$repository" rev-parse HEAD)"
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -103,9 +154,7 @@ spec:
             - name: publisher
               image: {{ .Values.codex.marketplace.publisher.image | quote }}
               imagePullPolicy: IfNotPresent
-              command: [/bin/sh, -ceu]
-              args:
-                - apk add --no-cache jq >/dev/null && exec /bin/sh /publisher/publish.sh
+              command: [/bin/sh, /publisher/publish.sh]
               env:
                 - name: GIT_REPOSITORY
                   value: {{ .Values.codex.marketplace.publisher.repository | quote }}

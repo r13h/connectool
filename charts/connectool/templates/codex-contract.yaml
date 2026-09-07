@@ -30,7 +30,10 @@ data:
       - name: {{ $plugin.name | quote }}
         publication: {{ $plugin.publication | quote }}
         mcpOwner: {{ $plugin.mcpOwner }}
-        skills: {{ $plugin.skills | toJson }}
+        skills:
+        {{- range $skill := $plugin.skills }}
+          - {{ $skill.path | quote }}
+        {{- end }}
     {{- end }}
   {{- range $plugin := .Values.codex.plugins }}
   {{- if $plugin.mcpOwner }}
@@ -45,4 +48,14 @@ data:
   {{- if gt (len $plugin.skills) 0 }}{{ $_ := set $manifest "skills" "./skills/" }}{{ end }}
   {{ printf "%s.plugin.json" $plugin.name }}: |
     {{- $manifest | toJson | nindent 4 }}
+  {{- range $skillIndex, $skill := $plugin.skills }}
+  {{ printf "%s.skill.%d.md" $plugin.name $skillIndex }}: |
+    {{- $skill.content | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  skills.tsv: |
+  {{- range $plugin := .Values.codex.plugins }}
+    {{- range $skillIndex, $skill := $plugin.skills }}
+    {{ $plugin.name }}{{ "\t" }}{{ printf "%s.skill.%d.md" $plugin.name $skillIndex }}{{ "\t" }}{{ $skill.path }}
+    {{- end }}
   {{- end }}

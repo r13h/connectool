@@ -48,6 +48,8 @@ codex:
       repository: ""
       branch: main
       schedule: "*/5 * * * *"
+      # The image must contain git, jq, and the system CA bundle. Pin a digest
+      # in production; the publisher never installs packages at runtime.
       image: alpine/git:2.47.2
       secretRef:
         name: ""
@@ -63,9 +65,18 @@ codex:
   #   publication: platform-tools
   #   category: Productivity
   #   mcpOwner: true
-  #   skills: [skills/platform/SKILL.md]
+  #   skills:
+  #     - path: skills/platform/SKILL.md
+  #       content: |
+  #         ---
+  #         name: platform
+  #         description: Inspect the platform.
+  #         ---
+  #         # Platform
   # - name: cluster-operations
   #   publication: platform-tools
   #   category: Developer Tools
   #   mcpOwner: false
-  #   skills: [skills/cluster/SKILL.md]
+  #   skills:
+  #     - path: skills/cluster/SKILL.md
+  #       content: "..."
